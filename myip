@@ -1,13 +1,15 @@
 #!/bin/bash
 
 ## Get my external IP
-##linux - How can I get my external IP address in a shell script? - Unix & Linux Stack Exchange
-##https://unix.stackexchange.com/questions/22615/how-can-i-get-my-external-ip-address-in-a-shell-script/344997#344997
+## linux - How can I get my external IP address in a shell script? - Unix & Linux Stack Exchange
+## https://unix.stackexchange.com/questions/22615/how-can-i-get-my-external-ip-address-in-a-shell-script/344997#344997
 ## https://unix.stackexchange.com/a/344997/7286
+## initial commit from https://github.com/mivk/myip
 
-
-timeout=2   # seconds to wait for a reply before trying next server
-verbose=1   # prints which server was used to STDERR
+TIMEOUT=2   # seconds to wait for a reply before trying next server
+VERBOSE=1   # prints which server was used
+# path and file name for log file
+MYIP_LOG="$PWD/myip.log"
 
 dnslist=(
     "dig +short            myip.opendns.com        @resolver1.opendns.com"
@@ -44,10 +46,16 @@ httplist=(
 
 # For ipv6:	wtfismyip.com/text
 
+function f_check_logfile () {
+	if [ ! -f $MYIP_LOG ]
+	then
+		touch $MYIP_LOG
+	fi
+}
 
 
 # function to shuffle the global array "array"
-shuffle() {
+function f_shuffle() {
    local i tmp size max rand
    size=${#array[*]}
    max=$(( 32768 / size * size ))
@@ -58,17 +66,18 @@ shuffle() {
    done
 }
 
+f_check_logfile
 
 ## if we have dig and a list of dns methods, try that first
 if hash dig 2>/dev/null && [ ${#dnslist[*]} -gt 0 ]; then
     eval array=( \"\${dnslist[@]}\" )
-    shuffle
+    f_shuffle
 
     for cmd in "${array[@]}"; do
-        [ "$verbose" == 1 ] && echo Trying: $cmd 1>&2
-        ip=$(timeout $timeout $cmd)
+        [ "$VERBOSE" == 1 ] && echo Trying: $cmd | tee -a $MYIP_LOG
+        ip=$(timeout $TIMEOUT $cmd)
         if [ -n "$ip" ]; then
-            echo $ip
+            echo $ip | tee -a $MYIP_LOG
             exit
         fi
     done
@@ -91,13 +100,13 @@ if [ -z "$curl_or_wget" ]; then
 fi
 
 eval array=( \"\${httplist[@]}\" )
-shuffle
+f_shuffle
 
 for url in "${array[@]}"; do
-	[ "$verbose" == 1 ] && echo Trying: $curl_or_wget "$url" 1>&2
-	ip=$(timeout $timeout $curl_or_wget "$url")
+	[ "$VERBOSE" == 1 ] && echo Trying: $curl_or_wget "$url" | tee -a $MYIP_LOG
+	ip=$(timeout $TIMEOUT $curl_or_wget "$url")
     if [ -n "$ip" ]; then
-        echo $ip
+        echo $ip | tee -a $MYIP_LOG
         exit
     fi
 done
