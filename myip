@@ -10,6 +10,7 @@ TIMEOUT=2   # seconds to wait for a reply before trying next server
 VERBOSE=1   # prints which server was used
 # path and file name for log file
 MYIP_LOG="$PWD/myip.log"
+NOW=$(date +"%Y-%m-%d %H:%M:%S")
 
 dnslist=(
     "dig +short            myip.opendns.com        @resolver1.opendns.com"
@@ -67,6 +68,8 @@ function f_shuffle() {
 }
 
 f_check_logfile
+echo "" >> $MYIP_LOG
+echo $NOW >> $MYIP_LOG
 
 ## if we have dig and a list of dns methods, try that first
 if hash dig 2>/dev/null && [ ${#dnslist[*]} -gt 0 ]; then
